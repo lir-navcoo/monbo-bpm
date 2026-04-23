@@ -53,14 +53,16 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.SERVER_SSH_KEY }}
 
-      - name: Deploy UI to server
+      - name: Deploy UI to server (rsync + atomic swap)
         run: |
           ssh -o StrictHostKeyChecking=no -o ConnectTimeout=30 ${{ env.SERVER_USER }}@${{ env.SERVER_HOST }} "
             mkdir -p ${{ env.DEPLOY_PATH }}/ui/dist-new
             rm -rf ${{ env.DEPLOY_PATH }}/ui/dist-new/*
           "
-          scp -o StrictHostKeyChecking=no -o ConnectTimeout=60 -o ServerAliveInterval=60 \
-            -r ./monbo-bpm-ui/dist/* \
+          rsync -avz --delete \
+            -e "ssh -o StrictHostKeyChecking=no -o ConnectTimeout=60 -o ServerAliveInterval=60" \
+            --checksum \
+            ./monbo-bpm-ui/dist/ \
             ${{ env.SERVER_USER }}@${{ env.SERVER_HOST }}:${{ env.DEPLOY_PATH }}/ui/dist-new/
           ssh -o StrictHostKeyChecking=no -o ConnectTimeout=30 ${{ env.SERVER_USER }}@${{ env.SERVER_HOST }} "
             rm -rf ${{ env.DEPLOY_PATH }}/ui/dist.old
@@ -68,12 +70,13 @@ jobs:
             mv ${{ env.DEPLOY_PATH }}/ui/dist-new ${{ env.DEPLOY_PATH }}/ui/dist
           "
 
-      - name: Deploy API to server
+      - name: Deploy API to server (rsync + atomic swap)
         run: |
           ssh -o StrictHostKeyChecking=no -o ConnectTimeout=30 ${{ env.SERVER_USER }}@${{ env.SERVER_HOST }} "
             mkdir -p ${{ env.DEPLOY_PATH }}/api-new
           "
-          scp -o StrictHostKeyChecking=no -o ConnectTimeout=120 -o ServerAliveInterval=60 \
+          rsync -avz --progress \
+            -e "ssh -o StrictHostKeyChecking=no -o ConnectTimeout=120 -o ServerAliveInterval=60" \
             ./monbo-bpm-api/target/*.jar \
             ${{ env.SERVER_USER }}@${{ env.SERVER_HOST }}:${{ env.DEPLOY_PATH }}/api-new/app.jar
           ssh -o StrictHostKeyChecking=no -o ConnectTimeout=30 ${{ env.SERVER_USER }}@${{ env.SERVER_HOST }} "
@@ -93,7 +96,7 @@ jobs:
 
       - name: Verify deployment
         run: |
-          sleep 10
+          sleep 15
           HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://${{ env.SERVER_HOST }}/ || echo "000")
           echo "Server response: $HTTP_CODE"
           if [ "$HTTP_CODE" = "200" ]; then
