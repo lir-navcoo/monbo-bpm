@@ -56,7 +56,7 @@ export function LoginForm({
                         <div className="rounded-lg bg-primary p-1.5">
                             <Layers className="h-3.5 w-3.5 text-white" />
                         </div>
-                        <CardTitle className="text-xl">Monbo Admin</CardTitle>
+                        <CardTitle className="text-xl">Monbo BPM</CardTitle>
                     </div>
                     <CardDescription>
                         输入用户名和密码登录系统
