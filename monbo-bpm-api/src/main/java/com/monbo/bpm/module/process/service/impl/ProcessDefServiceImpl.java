@@ -61,8 +61,11 @@ public class ProcessDefServiceImpl implements IProcessDefService {
 
         int newVersion = latestVersion + 1;
 
-        // 部署到 Camunda
-        String deploymentId = deployToCamunda(dto.getProcessKey(), newVersion, dto.getBpmnXml());
+        // 部署到 Camunda（仅当有 BPMN XML 时）
+        String deploymentId = null;
+        if (dto.getBpmnXml() != null && !dto.getBpmnXml().isBlank()) {
+            deploymentId = deployToCamunda(dto.getProcessKey(), newVersion, dto.getBpmnXml());
+        }
 
         // 写入本地库
         Long operatorId = getCurrentUserId();
@@ -74,9 +77,9 @@ public class ProcessDefServiceImpl implements IProcessDefService {
         def.setVersion(newVersion);
         def.setBpmnXml(dto.getBpmnXml());
         def.setSvgXml(dto.getSvgXml());
-        def.setStatus(1); // 激活
+        def.setStatus(deploymentId != null ? 2 : 1); // 有deployment则已部署，否则草稿
         def.setDeploymentId(deploymentId);
-        def.setCamundaProcessDefId(dto.getProcessKey() + ":" + newVersion + ":" + deploymentId);
+        def.setCamundaProcessDefId(deploymentId != null ? dto.getProcessKey() + ":" + newVersion + ":" + deploymentId : null);
         def.setCreatedBy(operatorId);
         def.setCreatedTime(LocalDateTime.now());
         processDefMapper.insert(def);

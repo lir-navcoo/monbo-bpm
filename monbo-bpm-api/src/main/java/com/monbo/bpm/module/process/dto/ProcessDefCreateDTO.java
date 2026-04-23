@@ -16,7 +16,6 @@ public class ProcessDefCreateDTO {
 
     private String category;
 
-    @NotBlank(message = "BPMN XML不能为空")
     private String bpmnXml;
 
     private String svgXml;
