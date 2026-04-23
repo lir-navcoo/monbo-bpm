@@ -1,0 +1,6 @@
+# Prod 环境：CSRF 开启
+camunda:
+  bpm:
+    webapp:
+      csrf:
+        enabled: true

@@ -1,0 +1,6 @@
+# Dev 环境：CSRF 关闭，方便前后端分离调试
+camunda:
+  bpm:
+    webapp:
+      csrf:
+        enabled: false
