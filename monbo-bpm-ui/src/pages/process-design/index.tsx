@@ -4,6 +4,7 @@ import * as React from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import { IconArrowLeft, IconDeviceFloppy, IconUpload } from "@tabler/icons-react"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { processDefAPI } from "@/lib/api/process-def"
 import type { ProcessDefRespDTO } from "@/lib/types"
 
@@ -15,27 +16,73 @@ export default function ProcessDesignPage() {
   const [saving, setSaving] = React.useState(false)
   const [publishing, setPublishing] = React.useState(false)
 
+  // 暂存的修改
+  const [pendingName, setPendingName] = React.useState<string>("")
+  const [pendingBpmnXml, setPendingBpmnXml] = React.useState<string | undefined>()
+  const [pendingSvgXml, setPendingSvgXml] = React.useState<string | undefined>()
+  const [hasPendingChanges, setHasPendingChanges] = React.useState(false)
+
+  // 标题编辑状态
+  const [editingName, setEditingName] = React.useState(false)
+  const [nameInput, setNameInput] = React.useState("")
+  const nameInputRef = React.useRef<HTMLInputElement>(null)
+
   React.useEffect(() => {
     if (!id) return
     processDefAPI.getById(Number(id)).then((res) => {
       setProcessDef(res.data)
+      setPendingName(res.data.processName)
+      setNameInput(res.data.processName)
       setLoading(false)
     }).catch(() => {
       setLoading(false)
     })
   }, [id])
 
+  // 点击标题进入编辑
+  const handleNameClick = () => {
+    setNameInput(pendingName)
+    setEditingName(true)
+    setTimeout(() => nameInputRef.current?.select(), 0)
+  }
+
+  // 标题编辑完成（失焦或回车）
+  const handleNameChange = () => {
+    const trimmed = nameInput.trim()
+    if (trimmed && trimmed !== pendingName) {
+      setPendingName(trimmed)
+      setHasPendingChanges(true)
+    }
+    setEditingName(false)
+  }
+
+  const handleNameKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      e.currentTarget.blur()
+    }
+  }
+
+  // 保存（仅暂存的变更）
   const handleSave = async () => {
     if (!processDef || saving) return
     setSaving(true)
     try {
-      // TODO: 调用保存接口
-      console.log("保存流程定义")
+      await processDefAPI.update(processDef.id, {
+        processName: pendingName !== processDef.processName ? pendingName : undefined,
+        bpmnXml: pendingBpmnXml,
+        svgXml: pendingSvgXml,
+      })
+      // 更新本地状态
+      setProcessDef({ ...processDef, processName: pendingName })
+      setPendingBpmnXml(undefined)
+      setPendingSvgXml(undefined)
+      setHasPendingChanges(false)
     } finally {
       setSaving(false)
     }
   }
 
+  // 发布
   const handlePublish = async () => {
     if (!processDef || publishing) return
     setPublishing(true)
@@ -76,12 +123,34 @@ export default function ProcessDesignPage() {
           >
             <IconArrowLeft className="size-5" />
           </Button>
-          <span className="font-semibold text-base">
-            {processDef.processName}
-          </span>
+
+          {/* 可编辑标题 */}
+          {editingName ? (
+            <Input
+              ref={nameInputRef}
+              value={nameInput}
+              onChange={(e) => setNameInput(e.target.value)}
+              onBlur={handleNameChange}
+              onKeyDown={handleNameKeyDown}
+              className="h-8 max-w-64 font-semibold text-base"
+              autoFocus
+            />
+          ) : (
+            <span
+              onClick={handleNameClick}
+              className="font-semibold text-base cursor-pointer hover:text-primary transition-colors"
+            >
+              {pendingName}
+            </span>
+          )}
+
           <span className="text-sm text-muted-foreground">
             v{processDef.version}
           </span>
+
+          {hasPendingChanges && (
+            <span className="text-xs text-amber-500">(已修改)</span>
+          )}
         </div>
 
         {/* 右侧：保存 + 发布按钮 */}
@@ -89,7 +158,7 @@ export default function ProcessDesignPage() {
           <Button
             variant="outline"
             onClick={handleSave}
-            disabled={saving}
+            disabled={saving || !hasPendingChanges}
           >
             <IconDeviceFloppy className="size-4 mr-1" />
             {saving ? "保存中..." : "保存"}
