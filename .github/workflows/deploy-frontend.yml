@@ -43,10 +43,10 @@ jobs:
       - name: Deploy UI to server (rsync + atomic swap)
         run: |
           ssh -o StrictHostKeyChecking=no -o ConnectTimeout=30 ${{ env.SERVER_USER }}@${{ env.SERVER_HOST }} "
+            rm -rf ${{ env.DEPLOY_PATH }}/ui/dist-new
             mkdir -p ${{ env.DEPLOY_PATH }}/ui/dist-new
-            rm -rf ${{ env.DEPLOY_PATH }}/ui/dist-new/*
           "
-          rsync -avz --delete --checksum \
+          rsync -avz --delete \
             -e "ssh -o StrictHostKeyChecking=no -o ConnectTimeout=60 -o ServerAliveInterval=60" \
             ./monbo-bpm-ui/dist/ \
             ${{ env.SERVER_USER }}@${{ env.SERVER_HOST }}:${{ env.DEPLOY_PATH }}/ui/dist-new/
