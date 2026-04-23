@@ -5,7 +5,7 @@ import { useParams, useNavigate } from "react-router-dom"
 import { IconArrowLeft, IconDeviceFloppy, IconUpload } from "@tabler/icons-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { processDefAPI } from "@/lib/api/process-def"
+import { processDefApi } from "@/lib/api/process-def"
 import type { ProcessDefRespDTO } from "@/lib/types"
 
 export default function ProcessDesignPage() {
@@ -29,7 +29,7 @@ export default function ProcessDesignPage() {
 
   React.useEffect(() => {
     if (!id) return
-    processDefAPI.getById(Number(id)).then((res) => {
+    processDefApi.getById(Number(id)).then((res: { data: ProcessDefRespDTO }) => {
       setProcessDef(res.data)
       setPendingName(res.data.processName)
       setNameInput(res.data.processName)
@@ -56,9 +56,9 @@ export default function ProcessDesignPage() {
     setEditingName(false)
   }
 
-  const handleNameKeyDown = (e: React.KeyboardEvent) => {
+  const handleNameKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
-      e.currentTarget.blur()
+      (e.target as HTMLInputElement).blur()
     }
   }
 
