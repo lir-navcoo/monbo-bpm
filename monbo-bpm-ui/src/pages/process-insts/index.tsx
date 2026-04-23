@@ -2,10 +2,8 @@
 
 import * as React from "react"
 import {
-  IconPlayerPlay,
   IconX,
   IconEye,
-  IconSearch,
 } from "@tabler/icons-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -40,10 +38,7 @@ const statusMap: Record<number, { label: string; color: string }> = {
   3: { label: "已取消", color: "bg-gray-500" },
 }
 
-function formatTime(iso?: string): string {
-  if (!iso) return "-"
-  return iso.replace("T", " ").substring(0, 16)
-}
+
 
 export default function ProcessInstListPage() {
   const [searchText, setSearchText] = React.useState("")
@@ -69,7 +64,7 @@ export default function ProcessInstListPage() {
           onChange={(e) => setSearchText(e.target.value)}
           className="w-64"
         />
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
+        <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v || "all")}>
           <SelectTrigger className="w-32">
             <SelectValue placeholder="状态" />
           </SelectTrigger>

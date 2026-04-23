@@ -4,7 +4,6 @@ import * as React from "react"
 import {
   IconCheck,
   IconEye,
-  IconSearch,
   IconArrowForward,
 } from "@tabler/icons-react"
 import { Badge } from "@/components/ui/badge"
@@ -73,7 +72,7 @@ export default function TaskListPage() {
           onChange={(e) => setSearchText(e.target.value)}
           className="w-64"
         />
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
+        <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v || "all")}>
           <SelectTrigger className="w-32">
             <SelectValue placeholder="状态" />
           </SelectTrigger>
