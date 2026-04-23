@@ -7,6 +7,7 @@ import UserListPage from '@/pages/users';
 import RoleListPage from '@/pages/roles';
 import DepartmentListPage from '@/pages/departments';
 import ProcessDefListPage from '@/pages/process-defs';
+import ProcessDesignPage from '@/pages/process-design';
 import ProcessInstListPage from '@/pages/process-insts';
 import TaskListPage from '@/pages/tasks';
 
@@ -65,6 +66,10 @@ const router = createBrowserRouter([
     {
         path: '*',
         element: <Navigate to="/" replace />,
+    },
+    {
+        path: '/process-defs/:id/design',
+        element: <ProcessDesignPage />,
     },
 ]);
 
