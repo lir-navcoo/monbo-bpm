@@ -11,83 +11,58 @@ on:
 env:
   SERVER_HOST: 101.126.89.23
   SERVER_USER: root
-  SERVER_PORT: 22
-  SERVER_PATH: /opt/monbo-bpm/source-api
-  DEPLOY_PATH: /opt/monbo-bpm/api
 
 jobs:
   build-and-deploy-backend:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Build JAR
+        run: |
+          cd monbo-bpm-api
+          mvn clean package -DskipTests -q
+          echo "JAR built: $(ls target/*.jar 2>/dev/null | head -1)"
 
       - name: Setup SSH
         uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: ${{ secrets.SERVER_SSH_KEY }}
 
-      - name: Ensure server dir exists
+      - name: Deploy JAR to server
         run: |
-          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=30 ${{ env.SERVER_USER }}@${{ env.SERVER_HOST }} '
-            mkdir -p ${{ env.SERVER_PATH }}
-          '
-
-      - name: Sync code to server via SCP
-        run: |
-          # 排除 .git 和 target（不传输），只传源码
+          JAR=$(ls monbo-bpm-api/target/*.jar | head -1)
           rsync -az --delete \
             -e "ssh -o StrictHostKeyChecking=no -o ConnectTimeout=60" \
-            --exclude='.git' \
-            --exclude='target' \
-            --exclude='node_modules' \
-            --exclude='.github' \
-            ./ ${{ env.SERVER_USER }}@${{ env.SERVER_HOST }}:${{ env.SERVER_PATH }}/
+            "$JAR" ${{ env.SERVER_USER }}@${{ env.SERVER_HOST }}:/opt/monbo-bpm/api/app.jar
 
-      - name: Build & Deploy on server
+      - name: Restart backend
         run: |
-          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=60 ${{ env.SERVER_USER }}@${{ env.SERVER_HOST }} "
-            set -e
-            cd ${{ env.SERVER_PATH }}
-
-            # 确保 maven 可用（CentOS）
-            if ! command -v mvn >/dev/null 2>&1; then
-              echo '[SETUP] Installing maven...'
-              yum install -y -q maven > /dev/null 2>&1 || dnf install -y -q maven > /dev/null 2>&1
-            fi
-
-            # 检查是否有变化（通过源码 hash）
-            NEW_HASH=\$(find monbo-bpm-api/src -type f -exec stat --format='%Y %n' {} \; 2>/dev/null | sort -k2 | md5sum | cut -d' ' -f1)
-            if [ -f .build_hash ] && [ \"\$(cat .build_hash)\" = \"\$NEW_HASH\" ]; then
-              echo '[SKIP] No source changes, skipping build.'
-              exit 0
-            fi
-
-            echo '[BUILD] Building with Maven...'
-            mvn clean package -DskipTests -q
-
-            echo \$NEW_HASH > .build_hash
-
-            echo '[DEPLOY] Swapping JAR...'
-            JAR=\$(ls monbo-bpm-api/target/*.jar | head -1)
-            mv ${{ env.DEPLOY_PATH }}/app.jar ${{ env.DEPLOY_PATH }}/app.jar.bak 2>/dev/null || true
-            cp \"\$JAR\" ${{ env.DEPLOY_PATH }}/app.jar
-
+          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=60 ${{ env.SERVER_USER }}@${{ env.SERVER_HOST }} '
             systemctl daemon-reload
             systemctl restart monbo-bpm-api
-            echo '[DONE] Deployed successfully'
-          "
+            echo "Backend restarted"
+          '
 
       - name: Verify deployment
         run: |
           sleep 25
-          HTTP_CODE=\$(curl -s -o /dev/null -w '%{http_code}' \
-            http://\${{ env.SERVER_HOST }}/api/auth/login \
+          HTTP_CODE=$(curl -s -o /dev/null -w '%{http_code}' \
+            http://${{ env.SERVER_HOST }}/api/auth/login \
             -X POST -H 'Content-Type: application/json' \
             -d '{"username":"admin","password":"admin123"}' || echo '000')
-          echo "Backend HTTP response: \$HTTP_CODE"
-          if [ "\$HTTP_CODE" = '200' ]; then
+          echo "Backend HTTP response: $HTTP_CODE"
+          if [ "$HTTP_CODE" = '200' ]; then
             echo 'Deployment verified successfully'
           fi
