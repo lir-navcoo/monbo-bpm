@@ -18,7 +18,7 @@
     <description>BPM API Service based on Camunda</description>
 
     <properties>
-        <java.version>21</java.version>
+        <java.version>17</java.version>
         <lombok.version>1.18.30</lombok.version>
         <camunda.version>7.21.0</camunda.version>
         <mybatis-plus.version>3.5.6</mybatis-plus.version>
@@ -113,7 +113,7 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.13.0</version>
                 <configuration>
-                    <release>21</release>
+                    <release>17</release>
                     <annotationProcessorPaths>
                         <path>
                             <groupId>org.projectlombok</groupId>
