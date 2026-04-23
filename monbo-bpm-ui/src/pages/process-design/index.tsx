@@ -29,10 +29,10 @@ export default function ProcessDesignPage() {
 
   React.useEffect(() => {
     if (!id) return
-    processDefApi.getById(Number(id)).then((res: { data: ProcessDefRespDTO }) => {
-      setProcessDef(res.data)
-      setPendingName(res.data.processName)
-      setNameInput(res.data.processName)
+    processDefApi.getById(Number(id)).then((res: ProcessDefRespDTO) => {
+      setProcessDef(res)
+      setPendingName(res.processName)
+      setNameInput(res.processName)
       setLoading(false)
     }).catch(() => {
       setLoading(false)
@@ -67,7 +67,7 @@ export default function ProcessDesignPage() {
     if (!processDef || saving) return
     setSaving(true)
     try {
-      await processDefAPI.update(processDef.id, {
+      await processDefApi.update(processDef.id, {
         processName: pendingName !== processDef.processName ? pendingName : undefined,
         bpmnXml: pendingBpmnXml,
         svgXml: pendingSvgXml,
