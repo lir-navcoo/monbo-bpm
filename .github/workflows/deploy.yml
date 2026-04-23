@@ -43,6 +43,11 @@ jobs:
         working-directory: ./monbo-bpm-api
         run: mvn clean package -DskipTests
 
+      - name: Check build artifacts
+        run: |
+          echo "=== JAR File ===" && ls -lh ./monbo-bpm-api/target/*.jar
+          echo "=== UI Files ===" && ls -lh ./monbo-bpm-ui/dist/
+
       - name: Setup SSH
         uses: webfactory/ssh-agent@v0.9.0
         with:
@@ -50,30 +55,45 @@ jobs:
 
       - name: Deploy UI to server
         run: |
-          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 ${{ env.SERVER_USER }}@${{ env.SERVER_HOST }} "
-            mkdir -p ${{ env.DEPLOY_PATH }}/ui/dist
-            rm -rf ${{ env.DEPLOY_PATH }}/ui/dist/*
+          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=30 ${{ env.SERVER_USER }}@${{ env.SERVER_HOST }} "
+            mkdir -p ${{ env.DEPLOY_PATH }}/ui/dist-new
+            rm -rf ${{ env.DEPLOY_PATH }}/ui/dist-new/*
           "
-          scp -o StrictHostKeyChecking=no -o ConnectTimeout=10 \
+          scp -o StrictHostKeyChecking=no -o ConnectTimeout=60 -o ServerAliveInterval=60 \
             -r ./monbo-bpm-ui/dist/* \
-            ${{ env.SERVER_USER }}@${{ env.SERVER_HOST }}:${{ env.DEPLOY_PATH }}/ui/dist/
+            ${{ env.SERVER_USER }}@${{ env.SERVER_HOST }}:${{ env.DEPLOY_PATH }}/ui/dist-new/
+          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=30 ${{ env.SERVER_USER }}@${{ env.SERVER_HOST }} "
+            rm -rf ${{ env.DEPLOY_PATH }}/ui/dist.old
+            mv ${{ env.DEPLOY_PATH }}/ui/dist ${{ env.DEPLOY_PATH }}/ui/dist.old
+            mv ${{ env.DEPLOY_PATH }}/ui/dist-new ${{ env.DEPLOY_PATH }}/ui/dist
+          "
 
       - name: Deploy API to server
         run: |
-          scp -o StrictHostKeyChecking=no -o ConnectTimeout=10 \
+          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=30 ${{ env.SERVER_USER }}@${{ env.SERVER_HOST }} "
+            mkdir -p ${{ env.DEPLOY_PATH }}/api-new
+          "
+          scp -o StrictHostKeyChecking=no -o ConnectTimeout=120 -o ServerAliveInterval=60 \
             ./monbo-bpm-api/target/*.jar \
-            ${{ env.SERVER_USER }}@${{ env.SERVER_HOST }}:${{ env.DEPLOY_PATH }}/api/app.jar
+            ${{ env.SERVER_USER }}@${{ env.SERVER_HOST }}:${{ env.DEPLOY_PATH }}/api-new/app.jar
+          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=30 ${{ env.SERVER_USER }}@${{ env.SERVER_HOST }} "
+            rm -f ${{ env.DEPLOY_PATH }}/api/app.jar.bak
+            mv ${{ env.DEPLOY_PATH }}/api/app.jar ${{ env.DEPLOY_PATH }}/api/app.jar.bak 2>/dev/null || true
+            mv ${{ env.DEPLOY_PATH }}/api-new/app.jar ${{ env.DEPLOY_PATH }}/api/app.jar
+            rm -rf ${{ env.DEPLOY_PATH }}/api-new
+          "
 
       - name: Restart services
         run: |
-          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 ${{ env.SERVER_USER }}@${{ env.SERVER_HOST }} "
+          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=30 ${{ env.SERVER_USER }}@${{ env.SERVER_HOST }} "
+            systemctl daemon-reload
             systemctl restart monbo-bpm-api || true
             systemctl restart nginx
           "
 
       - name: Verify deployment
         run: |
-          sleep 5
+          sleep 10
           HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://${{ env.SERVER_HOST }}/ || echo "000")
           echo "Server response: $HTTP_CODE"
           if [ "$HTTP_CODE" = "200" ]; then
