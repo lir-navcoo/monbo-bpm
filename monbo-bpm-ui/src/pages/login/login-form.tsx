@@ -52,11 +52,11 @@ export function LoginForm({
         <div className={cn("flex flex-col gap-6", className)} {...props}>
             <Card>
                 <CardHeader>
-                    <div className="flex items-center gap-3 mb-2">
-                        <div className="rounded-xl bg-primary p-2">
-                            <Layers className="h-5 w-5 text-white" />
+                    <div className="flex items-center gap-2 mb-1">
+                        <div className="rounded-lg bg-primary p-1.5">
+                            <Layers className="h-3.5 w-3.5 text-white" />
                         </div>
-                        <CardTitle className="text-2xl">Monbo BPM</CardTitle>
+                        <CardTitle className="text-xl">Monbo Admin</CardTitle>
                     </div>
                     <CardDescription>
                         输入用户名和密码登录系统

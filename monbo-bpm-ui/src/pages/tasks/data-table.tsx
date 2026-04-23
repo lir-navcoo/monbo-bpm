@@ -230,9 +230,6 @@ export function TaskDataTable(props: DataTableProps) {
             </SelectContent>
           </Select>
         </div>
-        <div className="text-sm text-muted-foreground">
-          共 {filteredData.length} 个任务
-        </div>
       </div>
 
       {/* 表格 */}
@@ -277,6 +274,13 @@ export function TaskDataTable(props: DataTableProps) {
             )}
           </TableBody>
         </Table>
+      </div>
+
+      {/* 统计信息 */}
+      <div className="flex items-center justify-end">
+        <span className="text-sm text-muted-foreground">
+          共 {filteredData.length} 个任务
+        </span>
       </div>
     </div>
   )
