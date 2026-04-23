@@ -35,6 +35,16 @@ jobs:
             set -e
             mkdir -p ${{ env.SERVER_PATH }}
 
+            # 确保 git 和 maven 可用（CentOS Stream 9）
+            if ! command -v git >/dev/null 2>&1; then
+              echo "[SETUP] Installing git..."
+              yum install -y -q git > /dev/null 2>&1 || dnf install -y -q git > /dev/null 2>&1
+            fi
+            if ! command -v mvn >/dev/null 2>&1; then
+              echo "[SETUP] Installing maven..."
+              yum install -y -q maven > /dev/null 2>&1 || dnf install -y -q maven > /dev/null 2>&1
+            fi
+
             if [ ! -f "${{ env.SERVER_PATH }}/.git/config" ]; then
               echo "[INIT] First time: git clone..."
               git clone git@github.com:lir-navcoo/monbo-bpm.git ${{ env.SERVER_PATH }}
