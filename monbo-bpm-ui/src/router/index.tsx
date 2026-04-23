@@ -9,7 +9,6 @@ import DepartmentListPage from '@/pages/departments';
 import ProcessDefListPage from '@/pages/process-defs';
 import ProcessInstListPage from '@/pages/process-insts';
 import TaskListPage from '@/pages/tasks';
-import ProcessDefDesignPage from '@/pages/process-def-design';
 
 // 受保护的路由组件
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -24,14 +23,6 @@ const router = createBrowserRouter([
     {
         path: '/login',
         element: <LoginPage />,
-    },
-    {
-        path: '/process-defs/:id/design',
-        element: (
-            <ProtectedRoute>
-                <ProcessDefDesignPage />
-            </ProtectedRoute>
-        ),
     },
     {
         path: '/',
