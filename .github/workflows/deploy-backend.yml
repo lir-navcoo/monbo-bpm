@@ -31,34 +31,47 @@ jobs:
         working-directory: ./monbo-bpm-api
         run: mvn clean package -DskipTests
 
-      - name: Setup SSH
-        uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.SERVER_SSH_KEY }}
-
-      - name: Deploy API to server (rsync + atomic swap)
+      - name: Get JAR filename
+        id: jar
         run: |
-          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=30 ${{ env.SERVER_USER }}@${{ env.SERVER_HOST }} "
+          JAR_PATH=$(ls monbo-bpm-api/target/*.jar | head -1)
+          JAR_NAME=$(basename $JAR_PATH)
+          echo "path=$JAR_PATH" >> $GITHUB_OUTPUT
+          echo "name=$JAR_NAME" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release & upload JAR
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: backend-v${{ github.run_number }}
+          name: Backend v${{ github.run_number }}
+          body: "monbo-bpm-api release v${{ github.run_number }}"
+          files: ${{ steps.jar.outputs.path }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Deploy to server
+        run: |
+          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=30 ${{ env.SERVER_USER }}@${{ env.SERVER_HOST }} '
+            set -e
             mkdir -p ${{ env.DEPLOY_PATH }}/api-new
-          "
-          rsync -avz --progress \
-            -e "ssh -o StrictHostKeyChecking=no -o ConnectTimeout=120 -o ServerAliveInterval=60" \
-            ./monbo-bpm-api/target/*.jar \
-            ${{ env.SERVER_USER }}@${{ env.SERVER_HOST }}:${{ env.DEPLOY_PATH }}/api-new/app.jar
-          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=30 ${{ env.SERVER_USER }}@${{ env.SERVER_HOST }} "
-            rm -f ${{ env.DEPLOY_PATH }}/api/app.jar.bak
+            curl -L -o ${{ env.DEPLOY_PATH }}/api-new/app.jar \
+              "https://github.com/lir-navcoo/monbo-bpm/releases/download/backend-v${{ github.run_number }}/${{ steps.jar.outputs.name }}"
             mv ${{ env.DEPLOY_PATH }}/api/app.jar ${{ env.DEPLOY_PATH }}/api/app.jar.bak 2>/dev/null || true
             mv ${{ env.DEPLOY_PATH }}/api-new/app.jar ${{ env.DEPLOY_PATH }}/api/app.jar
             rm -rf ${{ env.DEPLOY_PATH }}/api-new
             systemctl daemon-reload
-            systemctl restart monbo-bpm-api || true
-          "
+            systemctl restart monbo-bpm-api
+          '
 
       - name: Verify deployment
         run: |
-          sleep 20
-          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://${{ env.SERVER_HOST }}/api/auth/login -X POST -H "Content-Type: application/json" -d '{"username":"admin","password":"admin"}' || echo "000")
-          echo "Backend response: $HTTP_CODE"
+          sleep 25
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://${{ env.SERVER_HOST }}/api/auth/login -X POST -H "Content-Type: application/json" -d '{"username":"admin","password":"admin123"}' || echo "000")
+          echo "Backend HTTP response: $HTTP_CODE"
           if [ "$HTTP_CODE" = "200" ]; then
             echo "Deployment verified successfully"
+          else
+            echo "Deployment may have failed"
           fi
