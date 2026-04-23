@@ -47,6 +47,8 @@ jobs:
 
             if [ ! -f "${{ env.SERVER_PATH }}/.git/config" ]; then
               echo "[INIT] First time: git clone..."
+              mkdir -p ~/.ssh
+              ssh-keyscan github.com >> ~/.ssh/known_hosts 2>/dev/null
               git clone git@github.com:lir-navcoo/monbo-bpm.git ${{ env.SERVER_PATH }}
             fi
 
