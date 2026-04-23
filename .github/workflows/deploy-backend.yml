@@ -1,0 +1,64 @@
+name: Build and Deploy Backend
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'monbo-bpm-api/**'
+      - '.github/workflows/deploy-backend.yml'
+  workflow_dispatch:
+
+env:
+  SERVER_HOST: 101.126.89.23
+  SERVER_USER: root
+  DEPLOY_PATH: /opt/monbo-bpm
+
+jobs:
+  build-and-deploy-backend:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Build API
+        working-directory: ./monbo-bpm-api
+        run: mvn clean package -DskipTests
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SERVER_SSH_KEY }}
+
+      - name: Deploy API to server (rsync + atomic swap)
+        run: |
+          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=30 ${{ env.SERVER_USER }}@${{ env.SERVER_HOST }} "
+            mkdir -p ${{ env.DEPLOY_PATH }}/api-new
+          "
+          rsync -avz --progress \
+            -e "ssh -o StrictHostKeyChecking=no -o ConnectTimeout=120 -o ServerAliveInterval=60" \
+            ./monbo-bpm-api/target/*.jar \
+            ${{ env.SERVER_USER }}@${{ env.SERVER_HOST }}:${{ env.DEPLOY_PATH }}/api-new/app.jar
+          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=30 ${{ env.SERVER_USER }}@${{ env.SERVER_HOST }} "
+            rm -f ${{ env.DEPLOY_PATH }}/api/app.jar.bak
+            mv ${{ env.DEPLOY_PATH }}/api/app.jar ${{ env.DEPLOY_PATH }}/api/app.jar.bak 2>/dev/null || true
+            mv ${{ env.DEPLOY_PATH }}/api-new/app.jar ${{ env.DEPLOY_PATH }}/api/app.jar
+            rm -rf ${{ env.DEPLOY_PATH }}/api-new
+            systemctl daemon-reload
+            systemctl restart monbo-bpm-api || true
+          "
+
+      - name: Verify deployment
+        run: |
+          sleep 20
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://${{ env.SERVER_HOST }}/api/auth/login -X POST -H "Content-Type: application/json" -d '{"username":"admin","password":"admin"}' || echo "000")
+          echo "Backend response: $HTTP_CODE"
+          if [ "$HTTP_CODE" = "200" ]; then
+            echo "Deployment verified successfully"
+          fi

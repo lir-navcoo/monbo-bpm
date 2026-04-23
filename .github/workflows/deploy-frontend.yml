@@ -1,0 +1,64 @@
+name: Build and Deploy Frontend
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'monbo-bpm-ui/**'
+      - '.github/workflows/deploy-frontend.yml'
+  workflow_dispatch:
+
+env:
+  SERVER_HOST: 101.126.89.23
+  SERVER_USER: root
+  DEPLOY_PATH: /opt/monbo-bpm
+
+jobs:
+  build-and-deploy-frontend:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install pnpm
+        run: npm install -g pnpm
+
+      - name: Build UI
+        working-directory: ./monbo-bpm-ui
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm build
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SERVER_SSH_KEY }}
+
+      - name: Deploy UI to server (rsync + atomic swap)
+        run: |
+          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=30 ${{ env.SERVER_USER }}@${{ env.SERVER_HOST }} "
+            mkdir -p ${{ env.DEPLOY_PATH }}/ui/dist-new
+            rm -rf ${{ env.DEPLOY_PATH }}/ui/dist-new/*
+          "
+          rsync -avz --delete --checksum \
+            -e "ssh -o StrictHostKeyChecking=no -o ConnectTimeout=60 -o ServerAliveInterval=60" \
+            ./monbo-bpm-ui/dist/ \
+            ${{ env.SERVER_USER }}@${{ env.SERVER_HOST }}:${{ env.DEPLOY_PATH }}/ui/dist-new/
+          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=30 ${{ env.SERVER_USER }}@${{ env.SERVER_HOST }} "
+            rm -rf ${{ env.DEPLOY_PATH }}/ui/dist.old
+            mv ${{ env.DEPLOY_PATH }}/ui/dist ${{ env.DEPLOY_PATH }}/ui/dist.old
+            mv ${{ env.DEPLOY_PATH }}/ui/dist-new ${{ env.DEPLOY_PATH }}/ui/dist
+            systemctl reload nginx
+          "
+
+      - name: Verify deployment
+        run: |
+          sleep 5
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://${{ env.SERVER_HOST }}/ || echo "000")
+          echo "Frontend response: $HTTP_CODE"
