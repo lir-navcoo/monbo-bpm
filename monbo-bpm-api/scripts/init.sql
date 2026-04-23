@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS mb_user (
     real_name VARCHAR(128) COMMENT '真实姓名',
     email VARCHAR(128) COMMENT '邮箱',
     phone VARCHAR(32) COMMENT '手机号',
+    dept_id BIGINT COMMENT '部门ID',
     status TINYINT DEFAULT 1 COMMENT '1:启用 0:禁用',
     created_by BIGINT COMMENT '创建人ID',
     created_time DATETIME DEFAULT CURRENT_TIMESTAMP,
