@@ -13,18 +13,22 @@ export interface PageData<T> {
 export interface UserCreateDTO {
   username: string;
   password?: string;
+  realName: string;
   email?: string;
   phone?: string;
   deptId?: number;
+  roleIds?: number[];
 }
 
 export interface UserUpdateDTO {
   username?: string;
   password?: string;
+  realName?: string;
   email?: string;
   phone?: string;
   status?: number;
   deptId?: number;
+  roleIds?: number[];
 }
 
 export const userApi = {
