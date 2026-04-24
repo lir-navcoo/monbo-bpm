@@ -13,6 +13,7 @@ export interface Role {
 export interface User {
   id: number;
   username: string;
+  realName?: string;
   nickname?: string;
   email?: string;
   phone?: string;
