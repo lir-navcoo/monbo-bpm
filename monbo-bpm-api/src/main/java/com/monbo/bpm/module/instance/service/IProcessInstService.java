@@ -1,5 +1,6 @@
 package com.monbo.bpm.module.instance.service;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.monbo.bpm.module.instance.dto.ProcessInstCreateDTO;
 import com.monbo.bpm.module.instance.dto.ProcessInstRespDTO;
 
@@ -12,6 +13,9 @@ public interface IProcessInstService {
 
     /** 查询单个实例 */
     ProcessInstRespDTO getProcessInstById(Long id);
+
+    /** 分页查询所有流程实例 */
+    IPage<ProcessInstRespDTO> listAll(int pageNum, int pageSize);
 
     /** 查询我的发起实例 */
     List<ProcessInstRespDTO> listMyInstances(Long starterId);
