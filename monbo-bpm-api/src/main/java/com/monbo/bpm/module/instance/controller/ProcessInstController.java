@@ -1,5 +1,6 @@
 package com.monbo.bpm.module.instance.controller;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.monbo.bpm.common.Result;
 import com.monbo.bpm.module.instance.dto.ProcessInstCreateDTO;
 import com.monbo.bpm.module.instance.dto.ProcessInstRespDTO;
@@ -8,8 +9,6 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @Validated
 @RestController
@@ -25,6 +24,14 @@ public class ProcessInstController {
         return Result.ok(processInstService.startProcess(dto));
     }
 
+    /** 分页查询所有流程实例 */
+    @GetMapping
+    public Result<IPage<ProcessInstRespDTO>> listProcessInsts(
+            @RequestParam(defaultValue = "1") int pageNum,
+            @RequestParam(defaultValue = "10") int pageSize) {
+        return Result.ok(processInstService.listAll(pageNum, pageSize));
+    }
+
     /** 查询单个实例 */
     @GetMapping("/{id}")
     public Result<ProcessInstRespDTO> getProcessInst(@PathVariable Long id) {
@@ -33,13 +40,13 @@ public class ProcessInstController {
 
     /** 查询我的发起实例 */
     @GetMapping("/my")
-    public Result<List<ProcessInstRespDTO>> listMyInstances() {
+    public Result<?> listMyInstances() {
         return Result.ok(processInstService.listMyInstances(null));
     }
 
     /** 按流程定义查询实例 */
     @GetMapping("/process-def/{processDefId}")
-    public Result<List<ProcessInstRespDTO>> listByProcessDef(@PathVariable Long processDefId) {
+    public Result<?> listByProcessDef(@PathVariable Long processDefId) {
         return Result.ok(processInstService.listByProcessDef(processDefId));
     }
 
