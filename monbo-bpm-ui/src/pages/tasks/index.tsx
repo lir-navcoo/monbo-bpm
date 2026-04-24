@@ -13,7 +13,7 @@ function mapTaskRespToTask(dto: TaskRespDTO): Task {
     processName: dto.processDefName || "",
     taskName: dto.taskName,
     assigneeName: dto.assignee || "",
-    status: dto.status === "pending" ? 1 : 2,
+    status: dto.status === "active" ? 1 : 2,
     priority: dto.priority,
     createdTime: dto.createdTime || "",
     dueDate: dto.dueDate,
