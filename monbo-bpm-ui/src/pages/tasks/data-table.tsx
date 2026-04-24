@@ -102,7 +102,7 @@ export function TaskDataTable(props: DataTableProps) {
   const [columnVisibility] = React.useState({})
 
   const handleStatusChange = (v: string | null) => {
-    setInternalStatusFilter(v === null || v === "全部状态" ? 0 : Number(v))
+    setInternalStatusFilter(v === null || v === "全部状态" ? 0 : v === "待处理" ? 1 : 2)
   }
 
   const columns: ColumnDef<Task>[] = [
