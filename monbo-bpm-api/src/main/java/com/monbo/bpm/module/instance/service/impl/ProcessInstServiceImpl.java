@@ -1,6 +1,8 @@
 package com.monbo.bpm.module.instance.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.monbo.bpm.common.BusinessException;
 import com.monbo.bpm.module.instance.dto.ProcessInstCreateDTO;
 import com.monbo.bpm.module.instance.dto.ProcessInstRespDTO;
@@ -47,25 +49,23 @@ public class ProcessInstServiceImpl implements IProcessInstService {
     @Override
     @Transactional
     public Long startProcess(ProcessInstCreateDTO dto) {
-        // 解析流程定义（仅用于获取 processKey 和 version）
         ProcessDef processDef = resolveProcessDef(dto);
         if (processDef == null) {
             throw BusinessException.bad("流程定义不存在");
         }
-        // 直接用 startProcessInstanceByKey（Camunda 会自动查找正确的版本）
         ProcessInstance pi = processEngine.getRuntimeService()
-                .startProcessInstanceByKey(processDef.getProcessKey(),
+                .startProcessInstanceByKey(
+                        processDef.getProcessKey(),
                         dto.getBusinessKey(),
                         dto.getVariables() != null ? dto.getVariables() : new HashMap<>());
 
-        // 写入本地库
         Long starterId = getCurrentUserId();
         ProcessInst inst = new ProcessInst();
         inst.setProcessDefId(processDef.getId());
         inst.setCamundaProcessInstId(pi.getId());
         inst.setBusinessKey(dto.getBusinessKey());
         inst.setStarterId(starterId);
-        inst.setStatus(1); // 运行中
+        inst.setStatus(1);
         inst.setCamundaProcessDefId(processDef.getCamundaProcessDefId());
         inst.setCreatedTime(LocalDateTime.now());
         processInstMapper.insert(inst);
@@ -82,6 +82,15 @@ public class ProcessInstServiceImpl implements IProcessInstService {
         }
         syncFromCamunda(inst);
         return toRespDTO(inst);
+    }
+
+    @Override
+    public IPage<ProcessInstRespDTO> listAll(int pageNum, int pageSize) {
+        Page<ProcessInst> page = new Page<>(pageNum, pageSize);
+        LambdaQueryWrapper<ProcessInst> wrapper = new LambdaQueryWrapper<ProcessInst>()
+                .orderByDesc(ProcessInst::getCreatedTime);
+        Page<ProcessInst> result = processInstMapper.selectPage(page, wrapper);
+        return result.convert(this::toRespDTO);
     }
 
     @Override
@@ -120,10 +129,9 @@ public class ProcessInstServiceImpl implements IProcessInstService {
         if (inst.getStatus() != 1) {
             throw BusinessException.bad("只有运行中的实例可以取消");
         }
-        // 向 Camunda 发送取消信号
         processEngine.getRuntimeService()
                 .deleteProcessInstance(inst.getCamundaProcessInstId(), "用户取消");
-        inst.setStatus(3); // 已取消
+        inst.setStatus(3);
         inst.setEndedTime(LocalDateTime.now());
         inst.setUpdatedTime(LocalDateTime.now());
         processInstMapper.updateById(inst);
@@ -150,13 +158,9 @@ public class ProcessInstServiceImpl implements IProcessInstService {
         return processInstMapper.selectCount(null);
     }
 
-    /**
-     * 从 Camunda 同步实例状态到本地。
-     * 若实例已在 Camunda 侧结束（正常完成或被取消），则更新本地 status 和 endedTime。
-     */
     private void syncFromCamunda(ProcessInst inst) {
         if (inst.getStatus() != 1) {
-            return; // 仅同步运行中的实例
+            return;
         }
         String camundaInstId = inst.getCamundaProcessInstId();
         try {
@@ -165,20 +169,18 @@ public class ProcessInstServiceImpl implements IProcessInstService {
                     .processInstanceId(camundaInstId)
                     .singleResult();
             if (running != null) {
-                return; // 仍在运行，无需更新
+                return;
             }
         } catch (Exception ignored) {
-            // 查询失败则继续查历史
         }
 
-        // 已不在运行中，查历史确认结束状态
         HistoricProcessInstance hist = processEngine.getHistoryService()
                 .createHistoricProcessInstanceQuery()
                 .processInstanceId(camundaInstId)
                 .singleResult();
 
         if (hist != null && hist.getEndTime() != null) {
-            inst.setStatus(2); // 已完成
+            inst.setStatus(2);
             inst.setEndedTime(LocalDateTime.now());
             inst.setUpdatedTime(LocalDateTime.now());
             processInstMapper.updateById(inst);
@@ -213,7 +215,6 @@ public class ProcessInstServiceImpl implements IProcessInstService {
         dto.setStatus(inst.getStatus());
         dto.setCamundaProcessDefId(inst.getCamundaProcessDefId());
         dto.setCreatedTime(inst.getCreatedTime());
-        // 填充流程定义信息
         ProcessDef def = processDefMapper.selectById(inst.getProcessDefId());
         if (def != null) {
             dto.setProcessDefKey(def.getProcessKey());
