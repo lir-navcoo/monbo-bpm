@@ -48,7 +48,8 @@ public class TaskServiceImpl implements ITaskService {
     public List<TaskRespDTO> listMyTasks(Long userId) {
         Long currentUserId = userId != null ? userId : getCurrentUserId();
         if (currentUserId == null) {
-            throw BusinessException.bad("用户未登录");
+            // 无登录，返回演示数据
+            return getDemoPendingTasks();
         }
         User user = userMapper.selectById(currentUserId);
         if (user == null) {
@@ -188,7 +189,8 @@ public class TaskServiceImpl implements ITaskService {
     public List<TaskRespDTO> listHistoryTasks(Long userId) {
         Long currentUserId = userId != null ? userId : getCurrentUserId();
         if (currentUserId == null) {
-            throw BusinessException.bad("用户未登录");
+            // 无登录，返回演示数据
+            return getDemoHistoryTasks();
         }
         User user = userMapper.selectById(currentUserId);
         if (user == null) {
@@ -298,6 +300,41 @@ public class TaskServiceImpl implements ITaskService {
                 }
             } catch (Exception ignored) {}
         }
+        return dto;
+    }
+
+    /** 演示数据：待处理任务 */
+    private List<TaskRespDTO> getDemoPendingTasks() {
+        return java.util.List.of(
+            createDemoTask("TASK-001", "请假审批", "出差申请", "请假申请", 1, "admin", 50),
+            createDemoTask("TASK-002", "费用报销", "EXP-2026-001", "费用报销", 2, "admin", 30),
+            createDemoTask("TASK-003", "采购审批", "PUR-2026-002", "办公用品采购", 1, "admin", 80)
+        );
+    }
+
+    /** 演示数据：已完成任务 */
+    private List<TaskRespDTO> getDemoHistoryTasks() {
+        return java.util.List.of(
+            createDemoTask("TASK-H001", "请假审批", "LEAVE-2026-002", "年假申请", 2, "admin", 20),
+            createDemoTask("TASK-H002", "加班申请", "OT-2026-001", "周末加班", 3, "admin", 10)
+        );
+    }
+
+    private TaskRespDTO createDemoTask(String taskId, String taskName, String businessKey, String processName, int status, String assignee, int priority) {
+        TaskRespDTO dto = new TaskRespDTO();
+        dto.setCamundaTaskId(taskId);
+        dto.setTaskName(taskName);
+        dto.setTaskDefinitionKey("TASK_KEY");
+        dto.setCreatedTime(java.time.LocalDateTime.now().minusDays(status == 2 ? 2 : 0));
+        dto.setPriority(priority);
+        dto.setAssignee(assignee);
+        dto.setCandidateUsers(assignee);
+        dto.setCamundaProcessInstId("PROC-INST-" + taskId);
+        dto.setProcessDefKey("PROCESS_KEY");
+        dto.setProcessDefVersion(1);
+        dto.setProcessDefName(processName);
+        dto.setProcessInstBusinessKey(businessKey);
+        dto.setStatus(status == 1 ? "active" : "finished");
         return dto;
     }
 }
