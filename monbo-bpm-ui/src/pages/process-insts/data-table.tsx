@@ -198,7 +198,7 @@ export function ProcessInstDataTable(props: DataTableProps) {
             onChange={(e) => setSearchText(e.target.value)}
             className="w-64"
           />
-          <Select value={statusFilter === 0 ? "全部状态" : (statusMap[statusFilter]?.label ?? "全部状态")} onValueChange={(v) => setStatusFilter(v === "全部状态" ? 0 : Number(v))}>
+          <Select value={statusFilter === 0 ? "全部状态" : (statusMap[statusFilter]?.label ?? "全部状态")} onValueChange={(v) => setStatusFilter(v === null || v === "全部状态" ? 0 : Number(v))}>
             <SelectTrigger className="w-32">
               <SelectValue />
             </SelectTrigger>
