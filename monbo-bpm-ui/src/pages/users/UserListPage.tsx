@@ -46,6 +46,7 @@ import type { User } from '@/lib/types';
 // Base schema without password (for edit mode)
 const baseUserFormSchema = z.object({
   username: z.string().min(1, '用户名不能为空').max(50, '用户名最多50个字符'),
+  realName: z.string().optional(),
   email: z.string().email('请输入有效的邮箱地址').optional().or(z.literal('')),
   phone: z.string().regex(/^1[3-9]\d{9}$/, '请输入有效的手机号码').optional().or(z.literal('')),
   deptId: z.number().optional().nullable(),
@@ -109,6 +110,7 @@ const UserListPage = () => {
     resolver: zodResolver(editingUser ? editUserFormSchema : createUserFormSchema),
     defaultValues: {
       username: '',
+      realName: '',
       password: '',
       email: '',
       phone: '',
@@ -121,6 +123,7 @@ const UserListPage = () => {
     if (dialogOpen) {
       form.reset({
         username: editingUser?.username || '',
+        realName: editingUser?.realName || '',
         password: '',
         email: editingUser?.email || '',
         phone: editingUser?.phone || '',
@@ -184,6 +187,7 @@ const UserListPage = () => {
     setEditingUser(null);
     form.reset({
       username: '',
+      realName: '',
       password: '',
       email: '',
       phone: '',
@@ -219,6 +223,7 @@ const UserListPage = () => {
         // Update existing user
         const updateData: UserUpdateDTO = {
           username: data.username,
+          realName: (data as any).realName || undefined,
           email: data.email || undefined,
           phone: data.phone || undefined,
           deptId: data.deptId ?? undefined,
@@ -234,6 +239,7 @@ const UserListPage = () => {
         // Create new user
         const createData: UserCreateDTO = {
           username: data.username,
+          realName: data.realName || '',
           password: (data as CreateUserFormValues).password,
           email: data.email || undefined,
           phone: data.phone || undefined,
@@ -451,6 +457,19 @@ const UserListPage = () => {
                     <FormLabel>用户名 *</FormLabel>
                     <FormControl>
                       <Input placeholder="请输入用户名" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="realName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>姓名</FormLabel>
+                    <FormControl>
+                      <Input placeholder="请输入真实姓名" {...field} value={field.value || ''} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
