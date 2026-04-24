@@ -23,7 +23,6 @@ function mapTaskRespToTask(dto: TaskRespDTO): Task {
 export default function TaskListPage() {
   const [data, setData] = React.useState<Task[]>([])
   const [loading, setLoading] = React.useState(true)
-  const [statusFilter, setStatusFilter] = React.useState<string>("all")
 
   const fetchData = React.useCallback(async () => {
     setLoading(true)
@@ -52,8 +51,6 @@ export default function TaskListPage() {
         data={data}
         loading={loading}
         onRefresh={fetchData}
-        statusFilter={statusFilter}
-        onStatusFilterChange={setStatusFilter}
       />
     </div>
   )

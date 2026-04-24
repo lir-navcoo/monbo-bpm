@@ -58,8 +58,6 @@ interface DataTableProps {
   data: Task[]
   loading?: boolean
   onRefresh?: () => void
-  statusFilter?: string
-  onStatusFilterChange?: (value: string) => void
 }
 
 const priorityMap: Record<number, { label: string; color: string }> = {
@@ -79,15 +77,11 @@ function formatTime(time?: string) {
 }
 
 export function TaskDataTable(props: DataTableProps) {
-  const { data, loading, onRefresh, statusFilter = "all", onStatusFilterChange } = props
+  const { data, loading, onRefresh } = props
 
   const [searchText, setSearchText] = React.useState("")
-  const [internalStatusFilter, setInternalStatusFilter] = React.useState<string>(statusFilter)
+  const [internalStatusFilter, setInternalStatusFilter] = React.useState<number>(0)
   const [filteredData, setFilteredData] = React.useState<Task[]>(data)
-
-  React.useEffect(() => {
-    setInternalStatusFilter(statusFilter)
-  }, [statusFilter])
 
   React.useEffect(() => {
     const lower = searchText.toLowerCase()
@@ -98,7 +92,7 @@ export function TaskDataTable(props: DataTableProps) {
           item.processName.toLowerCase().includes(lower) ||
           item.taskName.toLowerCase().includes(lower) ||
           item.assigneeName.toLowerCase().includes(lower)
-        const matchStatus = internalStatusFilter === "all" || String(item.status) === internalStatusFilter
+        const matchStatus = internalStatusFilter === 0 || item.status === internalStatusFilter
         return matchSearch && matchStatus
       })
     )
@@ -107,11 +101,8 @@ export function TaskDataTable(props: DataTableProps) {
   const [sorting] = React.useState([])
   const [columnVisibility] = React.useState({})
 
-  const handleStatusChange = (v: string | null) => {
-    if (v) {
-      setInternalStatusFilter(v)
-      onStatusFilterChange?.(v)
-    }
+  const handleStatusChange = (v: number | null) => {
+    setInternalStatusFilter(v ?? 0)
   }
 
   const columns: ColumnDef<Task>[] = [
@@ -240,7 +231,7 @@ export function TaskDataTable(props: DataTableProps) {
               <SelectValue placeholder="状态" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">全部状态</SelectItem>
+              <SelectItem value="0">全部状态</SelectItem>
               <SelectItem value="1">待处理</SelectItem>
               <SelectItem value="2">已完成</SelectItem>
             </SelectContent>

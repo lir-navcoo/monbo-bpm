@@ -82,7 +82,7 @@ export function ProcessInstDataTable(props: DataTableProps) {
   const { data, loading, pagination } = props
 
   const [searchText, setSearchText] = React.useState("")
-  const [statusFilter, setStatusFilter] = React.useState<string>("all")
+  const [statusFilter, setStatusFilter] = React.useState<number>(0)
   const [filteredData, setFilteredData] = React.useState<ProcessInst[]>(data)
 
   React.useEffect(() => {
@@ -94,7 +94,7 @@ export function ProcessInstDataTable(props: DataTableProps) {
           (item.processDefName?.toLowerCase().includes(lower)) ||
           (item.businessKey?.toLowerCase().includes(lower)) ||
           (item.starterName?.toLowerCase().includes(lower))
-        const matchStatus = statusFilter === "all" || String(item.status) === statusFilter
+        const matchStatus = statusFilter === 0 || item.status === statusFilter
         return matchSearch && matchStatus
       })
     )
@@ -198,12 +198,12 @@ export function ProcessInstDataTable(props: DataTableProps) {
             onChange={(e) => setSearchText(e.target.value)}
             className="w-64"
           />
-          <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v || "all")}>
+          <Select value={statusFilter} onValueChange={(v) => setStatusFilter(Number(v))}>
             <SelectTrigger className="w-32">
               <SelectValue placeholder="状态" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">全部状态</SelectItem>
+              <SelectItem value="0">全部状态</SelectItem>
               <SelectItem value="1">运行中</SelectItem>
               <SelectItem value="2">已完成</SelectItem>
               <SelectItem value="3">已取消</SelectItem>
