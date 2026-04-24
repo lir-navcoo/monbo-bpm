@@ -1,17 +1,59 @@
 "use client"
 
+import * as React from "react"
 import { ProcessInstDataTable } from "./data-table"
+import api, { extractData } from "@/lib/api"
+import type { ProcessInst } from "./data-table"
 
-const mockData: Parameters<typeof ProcessInstDataTable>[0]["data"] = [
-  { id: 1, processDefId: 1, processName: "请假申请流程", businessKey: "LEAVE-2026-001", starterName: "张三", status: 1, createdTime: "2026-04-23T10:30:00" },
-  { id: 2, processDefId: 2, processName: "费用报销流程", businessKey: "EXP-2026-001", starterName: "李四", status: 2, createdTime: "2026-04-23T09:15:00" },
-  { id: 3, processDefId: 1, processName: "请假申请流程", businessKey: "LEAVE-2026-002", starterName: "王五", status: 1, createdTime: "2026-04-22T16:20:00" },
-]
+interface ProcessInstPageData {
+  records: ProcessInst[]
+  total: number
+  pages: number
+  current: number
+  size: number
+}
 
 export default function ProcessInstListPage() {
+  const [data, setData] = React.useState<ProcessInst[]>([])
+  const [loading, setLoading] = React.useState(true)
+  const [pageNum, setPageNum] = React.useState(1)
+  const [pageSize] = React.useState(10)
+  const [total, setTotal] = React.useState(0)
+
+  const fetchData = React.useCallback(async (page: number) => {
+    setLoading(true)
+    try {
+      const res = await api.get("/process-insts", {
+        params: { pageNum: page, pageSize },
+      })
+      const result = extractData(res) as ProcessInstPageData | null
+      if (result?.records) {
+        setData(result.records as any[])
+        setTotal(result.total)
+        setPageNum(result.current)
+      }
+    } catch (err) {
+      console.error("Failed to fetch process instances:", err)
+    } finally {
+      setLoading(false)
+    }
+  }, [pageSize])
+
+  React.useEffect(() => {
+    fetchData(pageNum)
+  }, [fetchData, pageNum])
+
+  const handlePageChange = (newPage: number) => {
+    setPageNum(newPage)
+  }
+
   return (
     <div className="flex flex-1 flex-col gap-4">
-      <ProcessInstDataTable data={mockData} />
+      <ProcessInstDataTable
+        data={data}
+        loading={loading}
+        pagination={{ pageNum, pageSize, total, onPageChange: handlePageChange }}
+      />
     </div>
   )
 }

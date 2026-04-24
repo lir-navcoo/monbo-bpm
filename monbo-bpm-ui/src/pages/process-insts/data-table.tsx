@@ -40,20 +40,31 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { ChevronLeft, ChevronRight } from "lucide-react"
 
 export interface ProcessInst {
   id: number
   processDefId: number
-  processName: string
+  processDefName: string
   businessKey: string
-  starterName: string
+  starterId?: number
+  starterName?: string
   status: number
   createdTime: string
+  endedTime?: string
+}
+
+interface PaginationProps {
+  pageNum: number
+  pageSize: number
+  total: number
+  onPageChange: (page: number) => void
 }
 
 interface DataTableProps {
   data: ProcessInst[]
   loading?: boolean
+  pagination?: PaginationProps
 }
 
 const statusMap: Record<number, { label: string; color: string }> = {
@@ -68,7 +79,7 @@ function formatTime(time?: string) {
 }
 
 export function ProcessInstDataTable(props: DataTableProps) {
-  const { data, loading } = props
+  const { data, loading, pagination } = props
 
   const [searchText, setSearchText] = React.useState("")
   const [statusFilter, setStatusFilter] = React.useState<string>("all")
@@ -80,9 +91,9 @@ export function ProcessInstDataTable(props: DataTableProps) {
       data.filter((item) => {
         const matchSearch =
           !searchText ||
-          item.processName.toLowerCase().includes(lower) ||
-          item.businessKey.toLowerCase().includes(lower) ||
-          item.starterName.toLowerCase().includes(lower)
+          (item.processDefName?.toLowerCase().includes(lower)) ||
+          (item.businessKey?.toLowerCase().includes(lower)) ||
+          (item.starterName?.toLowerCase().includes(lower))
         const matchStatus = statusFilter === "all" || String(item.status) === statusFilter
         return matchSearch && matchStatus
       })
@@ -97,13 +108,13 @@ export function ProcessInstDataTable(props: DataTableProps) {
       accessorKey: "businessKey",
       header: "业务Key",
       cell: ({ row }) => (
-        <code className="text-xs font-mono">{row.original.businessKey}</code>
+        <code className="text-xs font-mono">{row.original.businessKey || "-"}</code>
       ),
     },
     {
-      accessorKey: "processName",
+      accessorKey: "processDefName",
       header: "流程名称",
-      cell: ({ row }) => <span className="font-medium">{row.original.processName}</span>,
+      cell: ({ row }) => <span className="font-medium">{row.original.processDefName || "-"}</span>,
     },
     {
       accessorKey: "starterName",
@@ -173,6 +184,8 @@ export function ProcessInstDataTable(props: DataTableProps) {
     getCoreRowModel: getCoreRowModel(),
     manualSorting: true,
   })
+
+  const totalPages = pagination ? Math.ceil(pagination.total / pagination.pageSize) : 1
 
   return (
     <div className="flex flex-col gap-4">
@@ -245,6 +258,36 @@ export function ProcessInstDataTable(props: DataTableProps) {
           </TableBody>
         </Table>
       </div>
+
+      {/* 分页 */}
+      {pagination && (
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-muted-foreground">
+            共 {pagination.total} 条
+          </span>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => pagination.onPageChange(pagination.pageNum - 1)}
+              disabled={pagination.pageNum <= 1}
+            >
+              <ChevronLeft className="size-4" />
+            </Button>
+            <span className="text-sm">
+              第 {pagination.pageNum} / {totalPages} 页
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => pagination.onPageChange(pagination.pageNum + 1)}
+              disabled={pagination.pageNum >= totalPages}
+            >
+              <ChevronRight className="size-4" />
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

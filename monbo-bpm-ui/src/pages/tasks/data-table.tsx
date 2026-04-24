@@ -13,9 +13,11 @@ import {
   IconCircleCheckFilled,
   IconDotsVertical,
   IconEye,
+  IconRefresh,
 } from "@tabler/icons-react"
 
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -55,6 +57,9 @@ export interface Task {
 interface DataTableProps {
   data: Task[]
   loading?: boolean
+  onRefresh?: () => void
+  statusFilter?: string
+  onStatusFilterChange?: (value: string) => void
 }
 
 const priorityMap: Record<number, { label: string; color: string }> = {
@@ -74,11 +79,15 @@ function formatTime(time?: string) {
 }
 
 export function TaskDataTable(props: DataTableProps) {
-  const { data, loading } = props
+  const { data, loading, onRefresh, statusFilter = "all", onStatusFilterChange } = props
 
   const [searchText, setSearchText] = React.useState("")
-  const [statusFilter, setStatusFilter] = React.useState<string>("1")
+  const [internalStatusFilter, setInternalStatusFilter] = React.useState<string>(statusFilter)
   const [filteredData, setFilteredData] = React.useState<Task[]>(data)
+
+  React.useEffect(() => {
+    setInternalStatusFilter(statusFilter)
+  }, [statusFilter])
 
   React.useEffect(() => {
     const lower = searchText.toLowerCase()
@@ -89,14 +98,21 @@ export function TaskDataTable(props: DataTableProps) {
           item.processName.toLowerCase().includes(lower) ||
           item.taskName.toLowerCase().includes(lower) ||
           item.assigneeName.toLowerCase().includes(lower)
-        const matchStatus = statusFilter === "all" || String(item.status) === statusFilter
+        const matchStatus = internalStatusFilter === "all" || String(item.status) === internalStatusFilter
         return matchSearch && matchStatus
       })
     )
-  }, [data, searchText, statusFilter])
+  }, [data, searchText, internalStatusFilter])
 
   const [sorting] = React.useState([])
   const [columnVisibility] = React.useState({})
+
+  const handleStatusChange = (v: string | null) => {
+    if (v) {
+      setInternalStatusFilter(v)
+      onStatusFilterChange?.(v)
+    }
+  }
 
   const columns: ColumnDef<Task>[] = [
     {
@@ -126,7 +142,7 @@ export function TaskDataTable(props: DataTableProps) {
       header: "办理人",
       cell: ({ row }) => (
         <div className="flex flex-col">
-          <span>{row.original.assigneeName}</span>
+          <span>{row.original.assigneeName || "未分配"}</span>
           {row.original.candidateName && (
             <span className="text-xs text-muted-foreground">候选：{row.original.candidateName}</span>
           )}
@@ -219,7 +235,7 @@ export function TaskDataTable(props: DataTableProps) {
             onChange={(e) => setSearchText(e.target.value)}
             className="w-64"
           />
-          <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v || "all")}>
+          <Select value={internalStatusFilter} onValueChange={handleStatusChange}>
             <SelectTrigger className="w-32">
               <SelectValue placeholder="状态" />
             </SelectTrigger>
@@ -230,6 +246,12 @@ export function TaskDataTable(props: DataTableProps) {
             </SelectContent>
           </Select>
         </div>
+        {onRefresh && (
+          <Button variant="outline" size="sm" onClick={onRefresh}>
+            <IconRefresh className="size-4 mr-2" />
+            刷新
+          </Button>
+        )}
       </div>
 
       {/* 表格 */}
