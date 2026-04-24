@@ -101,8 +101,8 @@ export function TaskDataTable(props: DataTableProps) {
   const [sorting] = React.useState([])
   const [columnVisibility] = React.useState({})
 
-  const handleStatusChange = (v: number | null) => {
-    setInternalStatusFilter(v ?? 0)
+  const handleStatusChange = (v: string | null) => {
+    setInternalStatusFilter(v === null || v === "全部状态" ? 0 : Number(v))
   }
 
   const columns: ColumnDef<Task>[] = [
@@ -226,14 +226,14 @@ export function TaskDataTable(props: DataTableProps) {
             onChange={(e) => setSearchText(e.target.value)}
             className="w-64"
           />
-          <Select value={internalStatusFilter} onValueChange={handleStatusChange}>
+          <Select value={internalStatusFilter === 0 ? "全部状态" : (statusMap[internalStatusFilter]?.label ?? "全部状态")} onValueChange={handleStatusChange}>
             <SelectTrigger className="w-32">
-              <SelectValue placeholder="状态" />
+              <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="0">全部状态</SelectItem>
-              <SelectItem value="1">待处理</SelectItem>
-              <SelectItem value="2">已完成</SelectItem>
+              <SelectItem value="全部状态">全部状态</SelectItem>
+              <SelectItem value="待处理">待处理</SelectItem>
+              <SelectItem value="已完成">已完成</SelectItem>
             </SelectContent>
           </Select>
         </div>

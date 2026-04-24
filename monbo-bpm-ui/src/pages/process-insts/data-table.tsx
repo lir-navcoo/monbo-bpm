@@ -198,15 +198,15 @@ export function ProcessInstDataTable(props: DataTableProps) {
             onChange={(e) => setSearchText(e.target.value)}
             className="w-64"
           />
-          <Select value={statusFilter} onValueChange={(v) => setStatusFilter(Number(v))}>
+          <Select value={statusFilter === 0 ? "全部状态" : (statusMap[statusFilter]?.label ?? "全部状态")} onValueChange={(v) => setStatusFilter(v === "全部状态" ? 0 : Number(v))}>
             <SelectTrigger className="w-32">
-              <SelectValue placeholder="状态" />
+              <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="0">全部状态</SelectItem>
-              <SelectItem value="1">运行中</SelectItem>
-              <SelectItem value="2">已完成</SelectItem>
-              <SelectItem value="3">已取消</SelectItem>
+              <SelectItem value="全部状态">全部状态</SelectItem>
+              <SelectItem value="运行中">运行中</SelectItem>
+              <SelectItem value="已完成">已完成</SelectItem>
+              <SelectItem value="已取消">已取消</SelectItem>
             </SelectContent>
           </Select>
         </div>

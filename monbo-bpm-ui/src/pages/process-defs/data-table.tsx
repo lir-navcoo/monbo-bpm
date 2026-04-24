@@ -118,16 +118,16 @@ export function ProcessDefCardGrid(props: ProcessDefCardGridProps) {
           className="w-52"
         />
         <Select
-          value={statusFilter === null ? "0" : String(statusFilter)}
-          onValueChange={(v) => onStatusFilterChange(v === "0" ? null : Number(v))}
+          value={statusFilter === null ? "全部状态" : (statusFilter === 1 ? "激活" : "挂起")}
+          onValueChange={(v) => onStatusFilterChange(v === "全部状态" ? null : (v === "激活" ? 1 : 2))}
         >
           <SelectTrigger className="w-32">
-            <SelectValue placeholder="状态" />
+            <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="0">全部状态</SelectItem>
-            <SelectItem value="1">激活</SelectItem>
-            <SelectItem value="2">挂起</SelectItem>
+            <SelectItem value="全部状态">全部状态</SelectItem>
+            <SelectItem value="激活">激活</SelectItem>
+            <SelectItem value="挂起">挂起</SelectItem>
           </SelectContent>
         </Select>
         <Button variant="outline" size="sm" onClick={props.onRefresh}>
